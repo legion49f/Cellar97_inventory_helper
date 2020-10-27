@@ -27,26 +27,33 @@ def csv_to_hashmap_filtered(filename:str):
                 continue
     return hashmap
 
-def add_csv_data_to_db(csv_data):
-
+def add_csv_data_to_db(csv_data:dict):
     connection = sqlite3.connect("cellar97.db")
-    cursor = connection.cursor()
+    with connection:
+        cursor = connection.cursor()
 
-    sql_command=""" CREATE TABLE employee ( staff_number INT NOT NULL, fname VARCHAR(20), lname VARCHAR(30), gender CHAR(1), 
-        joining DATE, birth_date DATE, PRIMARY KEY (staff_number) ); """
+        cursor.execute(""" DROP TABLE products; """)
 
-    sql_command=""" USE TABLE employee; """
-    sql_command=""" SELECT * FROM employee; """
+        sql_command="""CREATE TABLE products ( sku INT NOT NULL, price FLOAT, item_name VARCHAR(255), stock_quantity INT, 
+            upc_code VARCHAR(15), PRIMARY KEY (sku) );"""
+        cursor.execute(sql_command)
 
-    cursor.execute(sql_command)
-    cursor.execute(sql_command)
-    cursor.execute(sql_command)
+        for key in csv_data:
+            item_name = "".join(e for e in csv_data[key][2] if e.isalnum() or e == " ")
+            command = F"""INSERT INTO products(sku, price, item_name, stock_quantity, upc_code) VALUES
+                ({csv_data[key][0]}, {csv_data[key][1]}, "{item_name}",
+                {csv_data[key][3]}, {csv_data[key][4]} );"""
+            print(command)
+            cursor.execute(command)
+
+        cursor.execute("SELECT * FROM products")
+        rows = cursor.fetchall()
+        for row in rows:
+            print(row)
 
 if __name__ == "__main__":
     hashmap = csv_to_hashmap_filtered("br-union.csv")
-    for key in hashmap:
-        print(hashmap[key])
-        pass
-        
-    # print(hashmap['74188'])
+    add_csv_data_to_db(hashmap)
+
+    
     print("done")
