@@ -1,6 +1,7 @@
 import json
 import csv
 from os import chdir
+from typing import NoReturn
 
 def split_into_chars(word:str):
     return [ char for char in word ]
@@ -334,9 +335,35 @@ def generate_import_csv(hashmap:dict, filename:str):
             for row in generated_data:
                 writer.writerow(row)
 
+def generate_sorted_csv(infile:str, outfile:str) -> NoReturn:
+    with open(infile, 'r', encoding='utf-8') as f:
+        data = []
+        for line in f.readlines():
+            placeholder = []
+            line = line.split('\t')
+            for item in line[:-1]:
+                placeholder.append(item)
+            data.append(placeholder)
+            
+    data.sort(key=lambda x: x[14])
+    with open(outfile, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f, delimiter=',')
+        for line in data:
+            writer.writerow(line)
+
+def get_unique_categories(filename:str):
+    data = set()
+    with open(filename, 'r', encoding='utf-8') as f:
+        for line in f.readlines():
+            line = line.split('\t')
+            data.add(line[13])
+    data = list(data)
+    data.sort()
+    print(data)
+
 def main():
     # chdir('/home/cellar97/Public_HTML/')
-    br_union_hashmap = to_hashmap_with_filtered_columns('br-union.csv') #tested
+    # br_union_hashmap = to_hashmap_with_filtered_columns('br-union.csv') #tested
     # print(br_union_hashmap.keys() )
     # print(br_union_hashmap['00418'] )
     # print(br_union_hashmap['00419'] )
@@ -345,7 +372,9 @@ def main():
     # print(br_union_hashmap['02135'] )
     # print(br_union_hashmap['03979'] )
     # print(br_union_hashmap['06569'] )
-    generate_import_csv(br_union_hashmap, 'woo_db_export.csv')
+    # generate_import_csv(br_union_hashmap, 'woo_db_export.csv')
+    # generate_sorted_csv('br-union.csv', 'sorted_csv.csv')
+    get_unique_categories('br-union.csv')
     
 if __name__ == "__main__":
     main()
