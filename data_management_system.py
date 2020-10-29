@@ -65,10 +65,19 @@ class Inventory(object):
             self.sort_by_categories(valid_items)
             self.get_lookup_table(valid_items)
 
+def workbook_formatting():
+    pass
+
+def generate_messagebox(msg):
+    popup = Tk()
+    popup.wm_title("!")
+    label = Label(popup, text=msg)
+    label.pack(side="top", fill="x", pady=10)
+    B1 = Button(popup, text="Okay", command = popup.destroy)
+    B1.pack()
+    popup.mainloop()
 
 def generate_inventory_report(inventory:Inventory, scanned_data:list):
-    #change to xlsx with different tabs for each category
-    # upc_code : sku, reg_price, name, stock, upc_code, category
     first_row = ['UPC Code', 'Name', 'Price', 'QTY in POS', 'QTY onhand', 'Difference', 'Category']
     data_for_report = []
     inventory.parse_scanner_data(scanned_data)
@@ -85,6 +94,7 @@ def generate_inventory_report(inventory:Inventory, scanned_data:list):
                 data_for_report.append( [upc_code, name, reg_price, qty_in_pos, qty_onhand, difference, category] )
     if data_for_report:
         workbook = pyxl.Workbook()
+        sheet = workbook.active
         r = 1
         for line in data_for_report:
             if type(line) is str:
@@ -109,12 +119,49 @@ def generate_inventory_report(inventory:Inventory, scanned_data:list):
             workbook.remove_sheet(sht_rem)
         except:
             pass
-        workbook.save(filename='inventory_report.xlsx')
+        workbook.save(filename='Inventory_report.xlsx')
 
 def generate_unscanned_report(inventory:Inventory, scanned_data:list):
-    # categories = ['BEER', 'CHAMPAGNE', 'CIGAR', 'LIQUOR', 'MISC. NON-TAXABLE', 'MISC. TAXABLE', 'SODA', 'UNKNOWN', 'WINE', 'WINE COOLERS'] #col 13
-    # scanned_data = inventory.parse_scanner_data(scanned_data)
-    pass
+    first_row = ['UPC Code', 'Name', 'Price', 'QTY in POS','Category']
+    data_for_report = []
+    inventory.parse_scanner_data(scanned_data)
+
+    for item in inventory.sorted_valid_items:
+        sku, reg_price, name, qty_in_pos, upc_code, category = item[0] ,item[1], item[2], item[3], item[4], item[5]
+        if upc_code not in inventory.scanned_data:
+            if category not in data_for_report:
+                data_for_report.append(category)
+                data_for_report.append([upc_code, name, reg_price, qty_in_pos, category])
+            else:
+                data_for_report.append( [upc_code, name, reg_price, qty_in_pos, category] )
+    if data_for_report:
+        workbook = pyxl.Workbook()
+        sheet = workbook.active
+        r = 1
+        for line in data_for_report:
+            if type(line) is str:
+                r = 2
+                sheet = workbook.create_sheet(line)
+                col = 1
+                for item in first_row:
+                    sheet.cell(row=1, column=col).value = item
+                    col+=1
+            else:
+                c = 1
+                for item in line:
+                    if c in [1,4]:
+                        item = int(item)
+                    if c in [3]:
+                        item = float(item)
+                    sheet.cell(row=r, column=c).value = item
+                    c+=1
+                r+=1
+        try:
+            sht_rem = workbook.get_sheet_by_name('Sheet')
+            workbook.remove_sheet(sht_rem)
+        except:
+            pass
+        workbook.save(filename='Unscanned_report.xlsx')
     
 def generate_new_database(filename:str):
     pass
@@ -123,7 +170,6 @@ if __name__ == "__main__":
     inventory = Inventory()
     root = Tk()
     root.title('Cellar 97 Inventory Management')
-    # root.iconbitmap(default='titan.ico')
     root.minsize(795, 490)
     root.maxsize(795, 490)
     menubar = Menu(root)
@@ -134,17 +180,18 @@ if __name__ == "__main__":
     filemenu.add_command(label="Close", command=root.destroy)
     menubar.add_cascade(label="File", menu=filemenu)
     try:
-        if platform.system() == 'Windows':
-            banner = WindowsPath(sys._MEIPASS, 'banner.png')
-            icon = WindowsPath(sys._MEIPASS, 'cellar97.ico')
-            background_image = PhotoImage(file=banner)
-            root.iconbitmap(default=icon)
+        # if platform.system() == 'Windows':
+        banner = WindowsPath(sys._MEIPASS, 'banner.png')
+        icon = WindowsPath(sys._MEIPASS, 'cellar97.ico')
+        background_image = PhotoImage(file=banner)
+        root.iconbitmap(default=icon)
     except:
         background_image = PhotoImage(file='banner.png')
         root.iconbitmap(default='cellar97.ico')
     
     background_label = Label(root, image=background_image, borderwidth=0, highlightthickness=0)
     background_label.place( relx=0.00, rely=0.00)
+    
     version_label = Label(text='Version 1.0', bg='#000000' ,fg='#ffffff').place(relx=0.915, rely=0.16)
     root.config(menu=menubar, bg='#c2c6cc')
 
@@ -164,7 +211,7 @@ if __name__ == "__main__":
     gen_inventory_button = Button(root, text='Generate Inventory Report', command=lambda:generate_inventory_report(inventory, left_frame_text.get('1.0', END)))
     gen_inventory_button.place(relx=0.68, rely=0.36)
     
-    gen_inventory_button = Button(root, text='Generate Unscanned Items Report')
+    gen_inventory_button = Button(root, text='Generate Unscanned Items Report', command=lambda:generate_unscanned_report(inventory, left_frame_text.get('1.0', END)) )
     gen_inventory_button.place(relx=0.68, rely=0.44)
 
     gen_inventory_button = Button(root, text='Generate New DB')
@@ -172,9 +219,6 @@ if __name__ == "__main__":
 
     
     root.mainloop()
-
-    # hashmap = csv_to_hashmap_filtered("./csv files/br-union.csv")
-    # print(hashmap['3125900145'])
 
     
     print("done")
