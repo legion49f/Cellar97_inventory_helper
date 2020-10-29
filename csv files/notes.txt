@@ -1,0 +1,5 @@
+1. scan products
+2. generate before and after excel sheet (see example)
+3. generate new BR-union.csv for import into the site
+4. br-union sheet to have items not scanned removed from sheet 
+['BEER', 'CHAMPAGNE', 'CIGAR', 'LIQUOR', 'LOTTERY', 'MISC. NON-TAXABLE', 'MISC. TAXABLE', 'SODA', 'UNKNOWN', 'WINE', 'WINE COOLERS'] col[13]
