@@ -203,6 +203,7 @@ if __name__ == "__main__":
     left_frame_scrollbar.pack(side=RIGHT, fill=Y)
     left_frame_text = Text(left_frame, yscrollcommand=left_frame_scrollbar.set,  width=50, height=22 , bg='#dae2f0')
     left_frame_text.pack()
+    left_frame_text.con
     left_frame_scrollbar.config(command=left_frame_text.yview)
 
     import_button = Button(root, text='Import Current DB', command=lambda:inventory.import_database_file())

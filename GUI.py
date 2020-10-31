@@ -2,24 +2,23 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from pathlib import WindowsPath
 import sys
-import inventory
-from openpyxl.descriptors.base import Default
+from typing import Text
+from inventory import Inventory
+import win32clipboard
 
 class GUI(tk.Tk):
-    def __init__(self, inventory:inventory.Inventory, size:tuple, icon_filename:str, banner_filename:str):
+    def __init__(self, size:tuple, icon_filename:str, banner_filename:str):
         super().__init__()
         self.title('Cellar 97 Inventory Management')
         self.minsize(size[0], size[1])
         self.maxsize(size[0], size[1])
         self.resizable(0, 0)
-
         self.protocol("WM_DELETE_WINDOW", self.exit_window)
-        
+        self.menubar()
         self.icon(icon_filename)
         self.add_banner(banner_filename)
-        
-
-        self.menubar()
+        self.left_frame = Textbox(self)
+        self.bind("<Button-3>", self.right_click_menu )
 
     def icon(self, icon_filename):
         icon_path = self.getbasepath(icon_filename)
@@ -27,12 +26,19 @@ class GUI(tk.Tk):
 
     def menubar(self):
         menubar = tk.Menu(self)
-        filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu = tk.Menu(menubar, tearoff=False)
         filemenu.add_command(label="Open Log File Folder")
         filemenu.add_separator()
         filemenu.add_command(label="Close", command=self.destroy)
         menubar.add_cascade(label="File", menu=filemenu)
         self.config(menu=menubar, bg='#c2c6cc')
+    
+    def right_click_menu(self, e):
+        right_click = tk.Menu(self, tearoff=False)
+        right_click.add_command(label='Cut', command=lambda:self.left_frame.cut(self))
+        right_click.add_command(label='Copy', command=lambda:self.left_frame.copy(self))
+        right_click.add_command(label='Paste', command=lambda:self.left_frame.paste(self))
+        right_click.tk_popup(e.x_root, e.y_root)
     
     def add_banner(self, banner_filename):
         banner_path = self.getbasepath(banner_filename)
@@ -66,6 +72,57 @@ class GUI(tk.Tk):
         ttk.Button(top, text="OK", command=self.yes_exit).grid(row=1, column=1, sticky="e")
         ttk.Button(top, text="Cancel", command=top.destroy).grid(row=1, column=2, padx=(7, 7), sticky="e")
 
+class Textbox(tk.Tk):
+    def __init__(self, parent) -> None:
+        self.left_frame = tk.Frame(parent, bg='#dae2f0')
+        self.left_frame.place(relx=0.005 ,rely=0.25)
+        self.left_frame_scrollbar = tk.Scrollbar(self.left_frame)
+        self.left_frame_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.left_frame_text = tk.Text(self.left_frame, yscrollcommand=self.left_frame_scrollbar.set,  width=50, height=22 , bg='#dae2f0')
+        self.left_frame_text.pack()
+        self.left_frame_scrollbar.config(command=self.left_frame_text.yview)
+
+    def cut(self, parent):
+        try:
+            selection = self.left_frame_text.get('sel.first', 'sel.last')
+        except:
+            selection = None
+        if selection:
+            parent.clipboard_clear()
+            parent.clipboard_append(selection)
+            self.left_frame_text.delete('sel.first', 'sel.last')
+        else:
+            text = self.left_frame_text.get('1.0', tk.END)
+            self.left_frame_text.delete('1.0', tk.END)
+            parent.clipboard_clear()
+            parent.clipboard_append(text)
+
+    def copy(self, parent):
+        try:
+            # selection = self.left_frame_text.selection_get()
+            selection = self.left_frame_text.get('sel.first', 'sel.last')
+        except:
+            selection = None
+        if selection:
+            parent.clipboard_clear()
+            parent.clipboard_append(selection)
+        else:
+            text = self.left_frame_text.get('1.0', tk.END)
+            parent.clipboard_clear()
+            parent.clipboard_append(text)
+    
+    def paste(self, parent):
+        clipboard_text = parent.clipboard_get()
+        try:
+            selection = self.left_frame_text.selection_get()
+        except:
+            selection = None
+        if selection:
+            self.left_frame_text.insert('sel.first', clipboard_text)
+            self.left_frame_text.delete('sel.first', 'sel.last')
+        else:
+            self.left_frame_text.insert(tk.END, clipboard_text)
+
 if __name__ == "__main__":
-    current_inventory = inventory.Inventory('./csv files/br-union.csv')
-    GUI(current_inventory, (795, 490), 'cellar97.ico', 'banner.png').mainloop()
+    current_inventory = Inventory('./csv files/br-union.csv')
+    GUI((795, 490), 'cellar97.ico', 'banner.png').mainloop()
