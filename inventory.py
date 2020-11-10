@@ -1,6 +1,8 @@
+import openpyxl as pyxl
+
 class Inventory(object):
-    def __init__(self, db_filepath):
-        self.db_filepath = db_filepath
+    def __init__(self):
+        self.db_filepath = ''
         scanned_data = {}
         sorted_valid_items = []
         lookup_table = {}
@@ -49,7 +51,99 @@ class Inventory(object):
         for item in valid_items:
             self.lookup_table[ item[4] ] = item
 
-    def import_database_file(self):
-        valid_items = self.get_valid_items(self.db_filepath)
+    def import_database_file(self, db_filepath):
+        valid_items = self.get_valid_items(db_filepath)
         self.sort_by_categories(valid_items)
         self.get_lookup_table(valid_items)
+    
+    def generate_inventory_report(self, scanned_data:list):
+        first_row = ['UPC Code', 'Name', 'Price', 'QTY in POS', 'QTY onhand', 'Difference', 'Category']
+        data_for_report = []
+        self.parse_scanner_data(scanned_data)
+
+        for item in self.sorted_valid_items:
+            sku, reg_price, name, qty_in_pos, upc_code, category = item[0] ,item[1], item[2], item[3], item[4], item[5]
+            if upc_code in self.scanned_data:
+                qty_onhand = self.scanned_data[upc_code][2]
+                difference = str( int(qty_onhand) - int(qty_in_pos) )
+                if category not in data_for_report:
+                    data_for_report.append(category)
+                    data_for_report.append([upc_code, name, reg_price, qty_in_pos, qty_onhand, difference, category])
+                else:
+                    data_for_report.append( [upc_code, name, reg_price, qty_in_pos, qty_onhand, difference, category] )
+        if data_for_report:
+            workbook = pyxl.Workbook()
+            sheet = workbook.active
+            r = 1
+            for line in data_for_report:
+                if type(line) is str:
+                    r = 2
+                    sheet = workbook.create_sheet(line)
+                    col = 1
+                    for item in first_row:
+                        sheet.cell(row=1, column=col).value = item
+                        col+=1
+                else:
+                    c = 1
+                    for item in line:
+                        if c in [1, 4 ,5, 6]:
+                            item = int(item)
+                        if c in [3]:
+                            item = float(item)
+                        sheet.cell(row=r, column=c).value = item
+                        c+=1
+                    r+=1
+            try:
+                sht_rem = workbook.get_sheet_by_name('Sheet')
+                workbook.remove_sheet(sht_rem)
+            except:
+                pass
+            workbook.save(filename='Inventory_report.xlsx')
+
+    def generate_unscanned_report(self, scanned_data:list):
+        first_row = ['UPC Code', 'Name', 'Price', 'QTY in POS','Category']
+        data_for_report = []
+        self.parse_scanner_data(scanned_data)
+
+        for item in self.sorted_valid_items:
+            sku, reg_price, name, qty_in_pos, upc_code, category = item[0] ,item[1], item[2], item[3], item[4], item[5]
+            if upc_code not in self.scanned_data:
+                if category not in data_for_report:
+                    data_for_report.append(category)
+                    data_for_report.append([upc_code, name, reg_price, qty_in_pos, category])
+                else:
+                    data_for_report.append( [upc_code, name, reg_price, qty_in_pos, category] )
+        if data_for_report:
+            workbook = pyxl.Workbook()
+            sheet = workbook.active
+            r = 1
+            for line in data_for_report:
+                if type(line) is str:
+                    r = 2
+                    sheet = workbook.create_sheet(line)
+                    col = 1
+                    for item in first_row:
+                        sheet.cell(row=1, column=col).value = item
+                        col+=1
+                else:
+                    c = 1
+                    for item in line:
+                        if c in [1,4]:
+                            item = int(item)
+                        if c in [3]:
+                            item = float(item)
+                        sheet.cell(row=r, column=c).value = item
+                        c+=1
+                    r+=1
+            try:
+                sht_rem = workbook.get_sheet_by_name('Sheet')
+                workbook.remove_sheet(sht_rem)
+            except:
+                pass
+            workbook.save(filename='Unscanned_report.xlsx')
+    
+    def generate_db_file(self):
+        pass
+
+    def workbook_formatting(self):
+        pass

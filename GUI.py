@@ -1,10 +1,9 @@
 import tkinter as tk
+import tkinter.filedialog
 import tkinter.ttk as ttk
 from pathlib import WindowsPath
 import sys
-from typing import Text
 from inventory import Inventory
-import win32clipboard
 
 class GUI(tk.Tk):
     def __init__(self, size:tuple, icon_filename:str, banner_filename:str):
@@ -19,6 +18,8 @@ class GUI(tk.Tk):
         self.add_banner(banner_filename)
         self.left_frame = Textbox(self)
         self.bind("<Button-3>", self.right_click_menu )
+        self.buttons = Buttons(self)
+        self.inventory = Inventory()
 
     def icon(self, icon_filename):
         icon_path = self.getbasepath(icon_filename)
@@ -72,8 +73,47 @@ class GUI(tk.Tk):
         ttk.Button(top, text="OK", command=self.yes_exit).grid(row=1, column=1, sticky="e")
         ttk.Button(top, text="Cancel", command=top.destroy).grid(row=1, column=2, padx=(7, 7), sticky="e")
 
+
+class Buttons(tk.Tk):
+    def __init__(self, parent):
+        self.import_db_button = tk.Button(parent, text='Import Current DB', command=lambda:self.start_import_database_file(parent) )
+        self.import_db_button.place(relx=0.68, rely=0.28)
+        self.import_db_button = tk.Button(parent, text='Generate Inventory Report', command=lambda:self.start_inventory_report(parent) )
+        self.import_db_button.place(relx=0.68, rely=0.36)
+        self.import_db_button = tk.Button(parent, text='Generate Unscanned Items Report', command=lambda:self.start_unscanned_report(parent) )
+        self.import_db_button.place(relx=0.68, rely=0.44)
+        self.import_db_button = tk.Button(parent, text='Generate New DB')
+        self.import_db_button.place(relx=0.68, rely=0.52)
+
+    def start_worker_thread(self):
+        pass
+
+    # def select_file(self, parent):
+    #     pass
+
+    def start_import_database_file(self, parent):
+        parent.inventory.db_filepath = tkinter.filedialog.askopenfilename \
+            (initialdir = ".",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
+        self.valid_items = parent.inventory.get_valid_items(parent.inventory.db_filepath)
+        parent.inventory.sort_by_categories(self.valid_items)
+        parent.inventory.get_lookup_table(self.valid_items)
+
+    def start_inventory_report(self, parent):
+        self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
+        #check its not blank or has one item at least
+        parent.inventory.generate_inventory_report(self.data_from_scanners)        
+
+    def start_unscanned_report(self, parent):
+        self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
+        #check its not blank or has one item at least
+        parent.inventory.generate_unscanned_report(self.data_from_scanners) 
+
+    def start_generating_new_db(self):
+        pass
+
+
 class Textbox(tk.Tk):
-    def __init__(self, parent) -> None:
+    def __init__(self, parent):
         self.left_frame = tk.Frame(parent, bg='#dae2f0')
         self.left_frame.place(relx=0.005 ,rely=0.25)
         self.left_frame_scrollbar = tk.Scrollbar(self.left_frame)
@@ -81,6 +121,7 @@ class Textbox(tk.Tk):
         self.left_frame_text = tk.Text(self.left_frame, yscrollcommand=self.left_frame_scrollbar.set,  width=50, height=22 , bg='#dae2f0')
         self.left_frame_text.pack()
         self.left_frame_scrollbar.config(command=self.left_frame_text.yview)
+        self.left_frame_text.focus()
 
     def cut(self, parent):
         try:
@@ -124,5 +165,5 @@ class Textbox(tk.Tk):
             self.left_frame_text.insert(tk.END, clipboard_text)
 
 if __name__ == "__main__":
-    current_inventory = Inventory('./csv files/br-union.csv')
+    # current_inventory = Inventory('./csv files/br-union.csv')
     GUI((795, 490), 'cellar97.ico', 'banner.png').mainloop()
