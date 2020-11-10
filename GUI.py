@@ -88,9 +88,6 @@ class Buttons(tk.Tk):
     def start_worker_thread(self):
         pass
 
-    # def select_file(self, parent):
-    #     pass
-
     def start_import_database_file(self, parent):
         parent.inventory.db_filepath = tkinter.filedialog.askopenfilename \
             (initialdir = ".",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
