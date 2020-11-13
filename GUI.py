@@ -1,5 +1,7 @@
 import tkinter as tk
+from tkinter.constants import BOTTOM
 import tkinter.filedialog
+import tkinter.messagebox
 import tkinter.ttk as ttk
 from pathlib import WindowsPath
 import sys
@@ -19,6 +21,7 @@ class GUI(tk.Tk):
         self.left_frame = Textbox(self)
         self.bind("<Button-3>", self.right_click_menu )
         self.buttons = Buttons(self)
+        self.checkbuttons = Checkbuttons(self)
         self.inventory = Inventory()
 
     def icon(self, icon_filename):
@@ -28,7 +31,7 @@ class GUI(tk.Tk):
     def menubar(self):
         menubar = tk.Menu(self)
         filemenu = tk.Menu(menubar, tearoff=False)
-        filemenu.add_command(label="Open Log File Folder")
+        filemenu.add_command(label="Choose Categories", command=lambda:self.checkbuttons.select_categories(self))
         filemenu.add_separator()
         filemenu.add_command(label="Close", command=self.destroy)
         menubar.add_cascade(label="File", menu=filemenu)
@@ -74,6 +77,26 @@ class GUI(tk.Tk):
         ttk.Button(top, text="Cancel", command=top.destroy).grid(row=1, column=2, padx=(7, 7), sticky="e")
 
 
+class Checkbuttons(tk.Tk):
+    def __init__(self, parent):
+        self.button1 = tk.IntVar()
+    
+    def select_categories(self, parent):
+        new_window = tk.Toplevel(parent)
+        new_window.details_expanded = False
+        new_window.title("Categories")
+        new_window.geometry("300x500+{}+{}".format(parent.winfo_x(), parent.winfo_y()))
+        new_window.resizable(False, False)
+        new_window.rowconfigure(0, weight=0)
+        new_window.rowconfigure(1, weight=1)
+        new_window.columnconfigure(0, weight=1)
+        new_window.columnconfigure(1, weight=1)
+        for category in parent.inventory.categories:
+            parent.inventory.categories[category] = tk.IntVar()
+            tk.Checkbutton(new_window, text=category, variable=parent.inventory.categories[category], onvalue=1, offvalue=0, height=2).pack()
+        ttk.Button(new_window, text="OK", command=new_window.destroy).pack()
+
+
 class Buttons(tk.Tk):
     def __init__(self, parent):
         self.import_db_button = tk.Button(parent, text='Import Current DB', command=lambda:self.start_import_database_file(parent) )
@@ -82,7 +105,7 @@ class Buttons(tk.Tk):
         self.import_db_button.place(relx=0.68, rely=0.36)
         self.import_db_button = tk.Button(parent, text='Generate Unscanned Items Report', command=lambda:self.start_unscanned_report(parent) )
         self.import_db_button.place(relx=0.68, rely=0.44)
-        self.import_db_button = tk.Button(parent, text='Generate New DB')
+        self.import_db_button = tk.Button(parent, text='Generate New DB', command=lambda:self.start_generating_new_db(parent))
         self.import_db_button.place(relx=0.68, rely=0.52)
 
     def start_worker_thread(self):
@@ -91,22 +114,25 @@ class Buttons(tk.Tk):
     def start_import_database_file(self, parent):
         parent.inventory.db_filepath = tkinter.filedialog.askopenfilename \
             (initialdir = ".",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
-        self.valid_items = parent.inventory.get_valid_items(parent.inventory.db_filepath)
-        parent.inventory.sort_by_categories(self.valid_items)
-        parent.inventory.get_lookup_table(self.valid_items)
+        parent.inventory.import_database_file(parent.inventory.db_filepath)
 
     def start_inventory_report(self, parent):
-        self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
-        #check its not blank or has one item at least
-        parent.inventory.generate_inventory_report(self.data_from_scanners)        
+        try:
+            self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
+            #check its not blank or has one item at least
+            parent.inventory.generate_inventory_report(self.data_from_scanners)        
+        except:
+            Popup('Oops')
 
     def start_unscanned_report(self, parent):
         self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
         #check its not blank or has one item at least
         parent.inventory.generate_unscanned_report(self.data_from_scanners) 
 
-    def start_generating_new_db(self):
-        pass
+    def start_generating_new_db(self, parent):
+        for key in parent.inventory.categories:
+            parent.inventory.categories[key] = parent.inventory.categories[key].get()
+        parent.inventory.generate_db_file()
 
 
 class Textbox(tk.Tk):
@@ -160,6 +186,11 @@ class Textbox(tk.Tk):
             self.left_frame_text.delete('sel.first', 'sel.last')
         else:
             self.left_frame_text.insert(tk.END, clipboard_text)
+
+
+class Popup(tk.Tk):
+    def __init__(self, dis_message):
+        tkinter.messagebox.showwarning(message=dis_message)
 
 if __name__ == "__main__":
     # current_inventory = Inventory('./csv files/br-union.csv')

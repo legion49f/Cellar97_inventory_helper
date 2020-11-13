@@ -1,17 +1,19 @@
 import openpyxl as pyxl
+from datetime import datetime
+import csv
 
 class Inventory(object):
     def __init__(self):
-        self.db_filepath = ''
-        scanned_data = {}
-        sorted_valid_items = []
-        lookup_table = {}
-        categories = [] 
+        self.db_filepath = str()
+        scanned_data = dict()
+        sorted_valid_items = list()
+        lookup_table = dict()
+        categories = dict()
         
     def split_into_chars(self, word:str):
         return [ char for char in word ]
 
-    def parse_scanner_data(self, scanned_data:list):
+    def parse_scanner_data(self, scanned_data:str):
         self.scanned_data = {}
         for line in scanned_data.splitlines():
             try:
@@ -23,9 +25,11 @@ class Inventory(object):
     
     def get_categories(self, valid_items:list):
         categories = set()
+        self.categories = dict()
         for item in valid_items:
             categories.add(item[5])
-        self.categories = list(categories)
+        for category in categories:
+            self.categories[category] = 0
 
     def get_valid_items(self, filename:str) -> list:
         sku, reg_price, name, stock, upc_code, category = 0, 7, 1, 11, 12 ,13
@@ -52,9 +56,11 @@ class Inventory(object):
             self.lookup_table[ item[4] ] = item
 
     def import_database_file(self, db_filepath):
+        self.db_filepath = db_filepath
         valid_items = self.get_valid_items(db_filepath)
         self.sort_by_categories(valid_items)
         self.get_lookup_table(valid_items)
+        self.get_categories(valid_items)
     
     def generate_inventory_report(self, scanned_data:list):
         first_row = ['UPC Code', 'Name', 'Price', 'QTY in POS', 'QTY onhand', 'Difference', 'Category']
@@ -98,8 +104,8 @@ class Inventory(object):
                 workbook.remove_sheet(sht_rem)
             except:
                 pass
-            workbook.save(filename='Inventory_report.xlsx')
-
+            workbook.save(filename='Inventory_report-' + str(datetime.now().strftime("%Y-%m-%d-%H-%M-%S")) + '.xlsx' )
+ 
     def generate_unscanned_report(self, scanned_data:list):
         first_row = ['UPC Code', 'Name', 'Price', 'QTY in POS','Category']
         data_for_report = []
@@ -140,10 +146,45 @@ class Inventory(object):
                 workbook.remove_sheet(sht_rem)
             except:
                 pass
-            workbook.save(filename='Unscanned_report.xlsx')
+            workbook.save(filename='Unscanned_report-' + str(datetime.now().strftime("%Y-%m-%d-%H-%M-%S")) + '.xlsx' )
     
     def generate_db_file(self):
-        pass
+        sku, reg_price, name, stock, upc_code, category = 0, 7, 1, 11, 12 ,13
+        new_data = []
+        with open(self.db_filepath, 'r', encoding='utf-8') as f:
+            for line in f.readlines():
+                line = line.split('\t')
+                if line[upc_code] in self.scanned_data and self.categories[line[category]] == 1:
+                    line[stock] = self.scanned_data[line[upc_code]][2]
+                    new_data.append(line)
+                else:
+                    new_data.append(line)
+        new_db_filename = 'New_database-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")+ '.csv'
+        with open(new_db_filename, 'w', encoding='utf-8', newline='') as f:
+            csv_writer = csv.writer(f, delimiter='\t' )
+            for line in new_data:
+                csv_writer.writerow(line[:-1])
 
     def workbook_formatting(self):
+        """Format the excel workbooks to look nice"""
         pass
+
+if __name__ == '__main__':
+    inv = Inventory()
+    inv.import_database_file('./csv files/br-union.csv')
+    inv.categories = {
+        'LIQUOR' : 1, 
+        'WINE COOLERS' : 0, 
+        'SODA' : 0,
+        'BEER' : 1, 
+        'MISC. NON-TAXABLE' : 0, 
+        'CIGAR' : 1, 
+        'CHAMPAGNE' : 1, 
+        'UNKNOWN' : 0, 
+        'WINE' : 1, 
+        'LOTTERY' : 0 }
+    inv.scanned_data = 'BRUNION\t8218409046\t999\nBRUNION\t8700000737\t999\nBRUNION\t8832000402\t0\nBRUNION\t8811002130\t20\nBRUNION\t4900005010\t12\n'
+    inv.generate_inventory_report(inv.scanned_data)
+    inv.generate_db_file()
+
+    print('Done')
