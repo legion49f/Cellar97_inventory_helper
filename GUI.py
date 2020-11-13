@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter.constants import BOTTOM
 import tkinter.filedialog
 import tkinter.messagebox
 import tkinter.ttk as ttk
