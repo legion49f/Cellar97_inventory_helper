@@ -78,7 +78,7 @@ class GUI(tk.Tk):
 
 class Checkbuttons(tk.Tk):
     def __init__(self, parent):
-        self.button1 = tk.IntVar()
+        self.categories_selected = False
     
     def select_categories(self, parent):
         new_window = tk.Toplevel(parent)
@@ -94,6 +94,7 @@ class Checkbuttons(tk.Tk):
             parent.inventory.categories[category] = tk.IntVar()
             tk.Checkbutton(new_window, text=category, variable=parent.inventory.categories[category], onvalue=1, offvalue=0, height=2).pack()
         ttk.Button(new_window, text="OK", command=new_window.destroy).pack()
+        self.categories_selected = True
 
 
 class Buttons(tk.Tk):
@@ -113,25 +114,36 @@ class Buttons(tk.Tk):
     def start_import_database_file(self, parent):
         parent.inventory.db_filepath = tkinter.filedialog.askopenfilename \
             (initialdir = ".",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
-        parent.inventory.import_database_file(parent.inventory.db_filepath)
+        if parent.inventory.db_filepath:
+            parent.inventory.import_database_file(parent.inventory.db_filepath)
 
     def start_inventory_report(self, parent):
-        try:
+        if parent.inventory.import_and_parse_success:
             self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
-            #check its not blank or has one item at least
-            parent.inventory.generate_inventory_report(self.data_from_scanners)        
-        except:
-            Popup('Oops')
+            if self.data_from_scanners:
+                parent.inventory.generate_inventory_report(self.data_from_scanners)
+            else:
+                Popup('Please Insert Scanned data')        
+        else:
+            Popup('Please import a database file')
 
     def start_unscanned_report(self, parent):
-        self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
-        #check its not blank or has one item at least
-        parent.inventory.generate_unscanned_report(self.data_from_scanners) 
+        if parent.inventory.import_and_parse_success:
+            self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
+            if self.data_from_scanners:
+                parent.inventory.generate_unscanned_report(self.data_from_scanners)
+            else:
+                Popup('Please Insert Scanned data')
+        else:
+            Popup('Please import a database file')
 
     def start_generating_new_db(self, parent):
-        for key in parent.inventory.categories:
-            parent.inventory.categories[key] = parent.inventory.categories[key].get()
-        parent.inventory.generate_db_file()
+        if parent.checkbuttons.categories_selected:
+            for key in parent.inventory.categories:
+                parent.inventory.categories[key] = parent.inventory.categories[key].get()
+            parent.inventory.generate_db_file()
+        else:
+            Popup('Please select categories to change')
 
 
 class Textbox(tk.Tk):

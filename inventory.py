@@ -5,10 +5,12 @@ import csv
 class Inventory(object):
     def __init__(self):
         self.db_filepath = str()
-        scanned_data = dict()
-        sorted_valid_items = list()
-        lookup_table = dict()
-        categories = dict()
+        # scanned_data = dict()
+        # sorted_valid_items = list()
+        # lookup_table = dict()
+        # categories = dict()
+        self.import_and_parse_success = False
+        
         
     def split_into_chars(self, word:str):
         return [ char for char in word ]
@@ -61,6 +63,7 @@ class Inventory(object):
         self.sort_by_categories(valid_items)
         self.get_lookup_table(valid_items)
         self.get_categories(valid_items)
+        self.import_and_parse_success = True
     
     def generate_inventory_report(self, scanned_data:list):
         first_row = ['UPC Code', 'Name', 'Price', 'QTY in POS', 'QTY onhand', 'Difference', 'Category']
