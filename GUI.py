@@ -120,7 +120,7 @@ class Buttons(tk.Tk):
     def start_inventory_report(self, parent):
         if parent.inventory.import_and_parse_success:
             self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
-            if self.data_from_scanners:
+            if len(self.data_from_scanners) > 1:
                 parent.inventory.generate_inventory_report(self.data_from_scanners)
             else:
                 Popup('Please Insert Scanned data')        
@@ -130,7 +130,7 @@ class Buttons(tk.Tk):
     def start_unscanned_report(self, parent):
         if parent.inventory.import_and_parse_success:
             self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
-            if self.data_from_scanners:
+            if len(self.data_from_scanners) > 1:
                 parent.inventory.generate_unscanned_report(self.data_from_scanners)
             else:
                 Popup('Please Insert Scanned data')

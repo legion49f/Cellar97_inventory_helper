@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['data_management_system.pyw'],
+a = Analysis(['GUI.pyw'],
              pathex=['C:\\Users\\Legion49F\\Documents\\Gitlab Projects\\cellar97-inventory-management-system\\BUILD'],
              binaries=[],
              datas=[('banner.png', '.'), ('cellar97.ico', '.')],
