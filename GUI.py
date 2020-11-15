@@ -105,8 +105,10 @@ class Buttons(tk.Tk):
         self.import_db_button.place(relx=0.68, rely=0.36)
         self.import_db_button = tk.Button(parent, text='Generate Unscanned Items Report', command=lambda:self.start_unscanned_report(parent) )
         self.import_db_button.place(relx=0.68, rely=0.44)
-        self.import_db_button = tk.Button(parent, text='Generate New DB', command=lambda:self.start_generating_new_db(parent))
+        self.import_db_button = tk.Button(parent, text='Generate Full New Database', command=lambda:self.start_generating_new_db(parent))
         self.import_db_button.place(relx=0.68, rely=0.52)
+        self.import_db_button = tk.Button(parent, text='Generate Scanned Item import file', command=lambda:self.start_generating_scanned_item_import(parent))
+        self.import_db_button.place(relx=0.68, rely=0.60)
 
     def start_worker_thread(self):
         pass
@@ -138,12 +140,30 @@ class Buttons(tk.Tk):
             Popup('Please import a database file')
 
     def start_generating_new_db(self, parent):
-        if parent.checkbuttons.categories_selected:
-            for key in parent.inventory.categories:
-                parent.inventory.categories[key] = parent.inventory.categories[key].get()
-            parent.inventory.generate_db_file()
+        if parent.inventory.import_and_parse_success:
+            self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
+            if len(self.data_from_scanners) > 1:
+                if parent.checkbuttons.categories_selected:
+                    for key in parent.inventory.categories:
+                        parent.inventory.categories[key] = parent.inventory.categories[key].get()
+                    parent.inventory.generate_db_file(self.data_from_scanners)
+                else:
+                    Popup('Please select categories to change')
+            else:
+                Popup('Please Insert Scanned data')
         else:
-            Popup('Please select categories to change')
+            Popup('Please import a database file')
+        
+
+    def start_generating_scanned_item_import(self, parent):
+        if parent.inventory.import_and_parse_success:
+            self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
+            if len(self.data_from_scanners) > 1:
+                    parent.inventory.generate_item_import_file(self.data_from_scanners)
+            else:
+                Popup('Please Insert Scanned data')
+        else:
+            Popup('Please import a database file')
 
 
 class Textbox(tk.Tk):

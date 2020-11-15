@@ -151,9 +151,10 @@ class Inventory(object):
                 pass
             workbook.save(filename='Unscanned_report-' + str(datetime.now().strftime("%Y-%m-%d-%H-%M-%S")) + '.xlsx' )
     
-    def generate_db_file(self):
+    def generate_db_file(self, scanned_data):
         sku, reg_price, name, stock, upc_code, category = 0, 7, 1, 11, 12 ,13
         new_data = []
+        self.parse_scanner_data(scanned_data)
         with open(self.db_filepath, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.split('\t')
@@ -163,6 +164,24 @@ class Inventory(object):
                 else:
                     new_data.append(line)
         new_db_filename = 'New_database-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")+ '.csv'
+        with open(new_db_filename, 'w', encoding='utf-8', newline='') as f:
+            csv_writer = csv.writer(f, delimiter='\t' )
+            for line in new_data:
+                csv_writer.writerow(line[:-1])
+                
+    def generate_item_import_file(self, scanned_data):
+        sku, reg_price, name, stock, upc_code, category = 0, 7, 1, 11, 12 ,13
+        self.parse_scanner_data(scanned_data)
+        new_data = []
+        with open(self.db_filepath, 'r', encoding='utf-8') as f:
+            for line in f.readlines():
+                line = line.split('\t')
+                if line[upc_code] in self.scanned_data:
+                    line[stock] = self.scanned_data[line[upc_code]][2]
+                    new_data.append(line)
+                else:
+                    continue
+        new_db_filename = 'Item_Import_file-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")+ '.csv'
         with open(new_db_filename, 'w', encoding='utf-8', newline='') as f:
             csv_writer = csv.writer(f, delimiter='\t' )
             for line in new_data:
