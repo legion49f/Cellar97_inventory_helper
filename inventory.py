@@ -5,13 +5,13 @@ import csv
 class Inventory(object):
     def __init__(self):
         self.db_filepath = str()
+        # NOTES:
         # scanned_data = dict()
         # sorted_valid_items = list()
         # lookup_table = dict()
         # categories = dict()
         self.import_and_parse_success = False
-        
-        
+          
     def split_into_chars(self, word:str):
         return [ char for char in word ]
 
@@ -21,7 +21,12 @@ class Inventory(object):
             try:
                 item = line.split()
                 if len(item) == 3:
-                    self.scanned_data[item[1]] = item
+                    if item[1] in self.scanned_data:
+                        temp = self.scanned_data[item[1]][2]
+                        item[2] = str(int(temp)+int(item[2]))
+                        self.scanned_data[item[1]] = item
+                    else:
+                        self.scanned_data[item[1]] = item
             except:
                 continue
     
@@ -34,7 +39,8 @@ class Inventory(object):
             self.categories[category] = 0
 
     def get_valid_items(self, filename:str) -> list:
-        sku, reg_price, name, stock, upc_code, category = 0, 7, 1, 11, 12 ,13
+        #col 62 is UPC with suffix and prefix
+        sku, reg_price, name, stock, upc_code, category, full_upc_code = 0, 7, 1, 11, 12, 13, 62
         valid_items = []
         with open(filename, 'r', encoding='utf-8') as f:
             for line in f.readlines():
@@ -43,7 +49,7 @@ class Inventory(object):
                     qty = int(line[11])
                     if line[12].isdigit():
                         if len( self.split_into_chars(line[12]) ) >= 5 :
-                            valid_items.append( [ line[sku], line[reg_price], line[name], line[stock], line[upc_code], line[category] ])
+                            valid_items.append( [ line[sku], line[reg_price], line[name], line[stock], line[upc_code], line[category], line[full_upc_code] ] )
                 except:
                     continue
         return valid_items
@@ -54,8 +60,12 @@ class Inventory(object):
 
     def get_lookup_table(self, valid_items:list) -> dict:
         self.lookup_table = {}
+        #pick the biggest upc if available because scanner cannot remove suffix or check digit 
         for item in valid_items:
-            self.lookup_table[ item[4] ] = item
+            if len(item[6]) > len(item[4]):
+                self.lookup_table[ item[6] ] = item
+            else:
+                self.lookup_table[ item[4] ] = item
 
     def import_database_file(self, db_filepath):
         self.db_filepath = db_filepath
@@ -71,13 +81,17 @@ class Inventory(object):
         self.parse_scanner_data(scanned_data)
 
         for item in self.sorted_valid_items:
-            sku, reg_price, name, qty_in_pos, upc_code, category = item[0] ,item[1], item[2], item[3], item[4], item[5]
-            if upc_code in self.scanned_data:
-                qty_onhand = self.scanned_data[upc_code][2]
+            sku, reg_price, name, qty_in_pos, upc_code, category, full_upc_code = item[0] ,item[1], item[2], item[3], item[4], item[5], item[6]
+            if upc_code in self.scanned_data or full_upc_code in self.scanned_data:
+                try:
+                    qty_onhand = self.scanned_data[upc_code][2]
+                except:
+                    qty_onhand = self.scanned_data[full_upc_code][2]
+
                 difference = str( int(qty_onhand) - int(qty_in_pos) )
                 if category not in data_for_report:
                     data_for_report.append(category)
-                    data_for_report.append([upc_code, name, reg_price, qty_in_pos, qty_onhand, difference, category])
+                    data_for_report.append( [upc_code, name, reg_price, qty_in_pos, qty_onhand, difference, category] )
                 else:
                     data_for_report.append( [upc_code, name, reg_price, qty_in_pos, qty_onhand, difference, category] )
         if data_for_report:
@@ -115,8 +129,8 @@ class Inventory(object):
         self.parse_scanner_data(scanned_data)
 
         for item in self.sorted_valid_items:
-            sku, reg_price, name, qty_in_pos, upc_code, category = item[0] ,item[1], item[2], item[3], item[4], item[5]
-            if upc_code not in self.scanned_data:
+            sku, reg_price, name, qty_in_pos, upc_code, category, full_upc_code = item[0] ,item[1], item[2], item[3], item[4], item[5], item[6]
+            if upc_code not in self.scanned_data or full_upc_code not in self.scanned_data:
                 if category not in data_for_report:
                     data_for_report.append(category)
                     data_for_report.append([upc_code, name, reg_price, qty_in_pos, category])
@@ -170,22 +184,26 @@ class Inventory(object):
                 csv_writer.writerow(line[:-1])
                 
     def generate_item_import_file(self, scanned_data):
-        sku, reg_price, name, stock, upc_code, category = 0, 7, 1, 11, 12 ,13
+        sku, reg_price, name, stock, upc_code, category, full_upc_code = 0, 7, 1, 11, 12 ,13, 62
         self.parse_scanner_data(scanned_data)
         new_data = []
         with open(self.db_filepath, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.split('\t')
-                if line[upc_code] in self.scanned_data:
-                    line[stock] = self.scanned_data[line[upc_code]][2]
+                if line[upc_code] in self.scanned_data or line[full_upc_code] in self.scanned_data:
+                    try:
+                        line[stock] = self.scanned_data[line[full_upc_code]][2]
+                    except:
+                        line[stock] = self.scanned_data[line[upc_code]][2]
                     new_data.append(line)
                 else:
                     continue
         new_db_filename = 'Item_Import_file-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")+ '.csv'
         with open(new_db_filename, 'w', encoding='utf-8', newline='') as f:
-            csv_writer = csv.writer(f, delimiter='\t' )
+            csv_writer = csv.writer(f, delimiter=',' )
             for line in new_data:
-                csv_writer.writerow(line[:-1])
+                row  = [line[sku], '0', line[stock] ]
+                csv_writer.writerow(row)
 
     def workbook_formatting(self):
         """Format the excel workbooks to look nice"""
@@ -206,7 +224,8 @@ if __name__ == '__main__':
         'WINE' : 1, 
         'LOTTERY' : 0 }
     inv.scanned_data = 'BRUNION\t8218409046\t999\nBRUNION\t8700000737\t999\nBRUNION\t8832000402\t0\nBRUNION\t8811002130\t20\nBRUNION\t4900005010\t12\n'
-    inv.generate_inventory_report(inv.scanned_data)
-    inv.generate_db_file()
+    # inv.generate_inventory_report(inv.scanned_data)
+    inv.generate_item_import_file(inv.scanned_data)
+    # inv.generate_db_file()
 
     print('Done')
