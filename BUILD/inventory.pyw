@@ -130,7 +130,7 @@ class Inventory(object):
 
         for item in self.sorted_valid_items:
             sku, reg_price, name, qty_in_pos, upc_code, category, full_upc_code = item[0] ,item[1], item[2], item[3], item[4], item[5], item[6]
-            if upc_code not in self.scanned_data or full_upc_code not in self.scanned_data:
+            if upc_code not in self.scanned_data and full_upc_code not in self.scanned_data:
                 if category not in data_for_report:
                     data_for_report.append(category)
                     data_for_report.append([upc_code, name, reg_price, qty_in_pos, category])
