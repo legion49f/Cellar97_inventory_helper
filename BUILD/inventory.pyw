@@ -164,6 +164,32 @@ class Inventory(object):
             except:
                 pass
             workbook.save(filename='Unscanned_report-' + str(datetime.now().strftime("%Y-%m-%d-%H-%M-%S")) + '.xlsx' )
+
+    def generate_reports_of_items_not_in_database(self, scanned_data:list):
+        data_for_report = [['', 'UPC Code', 'QTY Scanned']]
+        self.parse_scanner_data(scanned_data)
+
+        for item in self.scanned_data:
+            if item not in self.sorted_valid_items:
+                data_for_report.append(self.scanned_data[item])
+
+        if len(data_for_report) > 1:
+            workbook = pyxl.Workbook()
+            sheet = workbook.active
+            sheet = workbook.create_sheet("Items not in Database")
+            r = 1
+            for row in data_for_report:
+                col = 1
+                for item in row:
+                    sheet.cell(row=r, column=col).value = item
+                    col+=1
+                r+=1
+            try:
+                sht_rem = workbook.get_sheet_by_name('Sheet')
+                workbook.remove_sheet(sht_rem)
+            except:
+                pass
+            workbook.save(filename='Products_not_in_database_report-' + str(datetime.now().strftime("%Y-%m-%d-%H-%M-%S")) + '.xlsx' )
     
     def generate_db_file(self, scanned_data):
         sku, reg_price, name, stock, upc_code, category = 0, 7, 1, 11, 12 ,13

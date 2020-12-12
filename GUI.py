@@ -109,6 +109,8 @@ class Buttons(tk.Tk):
         self.import_db_button.place(relx=0.68, rely=0.52)
         self.import_db_button = tk.Button(parent, text='Generate Scanned Item import file', command=lambda:self.start_generating_scanned_item_import(parent))
         self.import_db_button.place(relx=0.68, rely=0.60)
+        self.import_db_button = tk.Button(parent, text='List Items not in the Database', command=lambda:self.start_generating_items_not_in_database(parent))
+        self.import_db_button.place(relx=0.68, rely=0.68)
 
     def start_worker_thread(self):
         pass
@@ -160,6 +162,16 @@ class Buttons(tk.Tk):
             self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
             if len(self.data_from_scanners) > 1:
                     parent.inventory.generate_item_import_file(self.data_from_scanners)
+            else:
+                Popup('Please Insert Scanned data')
+        else:
+            Popup('Please import a database file')
+
+    def start_generating_items_not_in_database(self, parent):
+        if parent.inventory.import_and_parse_success:
+            self.data_from_scanners = parent.left_frame.left_frame_text.get('1.0', tk.END)
+            if len(self.data_from_scanners) > 1:
+                    parent.inventory.generate_reports_of_items_not_in_database(self.data_from_scanners)
             else:
                 Popup('Please Insert Scanned data')
         else:
